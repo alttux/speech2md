@@ -49,6 +49,7 @@ dev = [
 
 [project.scripts]
 speech2md = "speech2md.cli.app:app"
+speech2md-gui = "speech2md.gui.app:main"
 
 [tool.ruff]
 target-version = "py311"
