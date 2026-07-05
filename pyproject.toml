@@ -27,7 +27,9 @@ cli = [
     "rich>=13.0",
 ]
 gui = [
+    "pycairo>=1.28.0",
     "PyGObject>=3.48",
+
 ]
 realtime = [
     "sounddevice>=0.5",

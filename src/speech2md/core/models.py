@@ -65,7 +65,7 @@ class Settings(BaseModel):
 
     llm_backend: LLMBackend = LLMBackend.ollama
     llm_url: str = "http://localhost:11434"
-    llm_model: str = "gemma4"
+    llm_model: str = ""
     llm_api_key: str = ""
     llm_timeout: int = 120
 
