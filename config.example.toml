@@ -42,7 +42,7 @@ llm_backend = "ollama"
 # Можно переопределить через переменную окружения:
 #   OLLAMA_URL          — для ollama
 #   OPENAI_BASE_URL     — для openai
-llm_url = "http://localhost:11434"
+llm_url = "http://10.147.19.141:11434"
 
 # Название модели.
 #   Ollama: gemma4, llama3, mistral, qwen2.5, etc.

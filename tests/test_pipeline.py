@@ -128,3 +128,76 @@ def test_progress_is_monotonic_and_complete(audio, stub_pipeline):
     assert percents == sorted(percents)
     assert seen[0] == ("init", 0.0)
     assert seen[-1] == ("done", 1.0)
+
+
+@pytest.fixture
+def transcript_md(tmp_path):
+    path = tmp_path / "lecture.md"
+    path.write_text(
+        "---\n"
+        "created: 2026-08-25T00:00:00\n"
+        "language: ru\n"
+        "---\n\n"
+        "Первое предложение тут. Второе предложение здесь.\n",
+        encoding="utf-8",
+    )
+    return path
+
+
+def test_run_text_job_builds_conspect_and_strips_frontmatter(transcript_md, stub_pipeline):
+    llm = FakeLLM("КОНСПЕКТ")
+    stub_pipeline(llm)
+
+    job = pipeline.run_text_job(transcript_md, mode=FormatMode.conspect)
+
+    assert job.status.value == "completed"
+    assert job.result is not None
+    assert job.result.full_text == "КОНСПЕКТ"
+    assert job.language == "ru"
+    assert job.output_path is not None
+    assert job.output_path.endswith("lecture.conspect.md")
+    assert "конспект" in llm.prompts[0].lower()
+    assert "---" not in llm.prompts[0]
+
+
+def test_run_text_job_transcript_mode_uses_plain_suffix(transcript_md, stub_pipeline):
+    llm = FakeLLM("ОЧИЩЕНО")
+    stub_pipeline(llm)
+
+    job = pipeline.run_text_job(transcript_md, mode=FormatMode.transcript)
+
+    assert job.output_path is not None
+    assert job.output_path.endswith("lecture.md")
+    assert not job.output_path.endswith("lecture.conspect.md")
+
+
+def test_run_text_job_language_option_overrides_frontmatter(tmp_path, stub_pipeline):
+    llm = FakeLLM("NOTES")
+    stub_pipeline(llm)
+    path = tmp_path / "lecture.md"
+    path.write_text("---\nlanguage: ru\n---\n\nHello there.\n", encoding="utf-8")
+
+    job = pipeline.run_text_job(path, language="en", mode=FormatMode.conspect)
+
+    assert job.language == "en"
+
+
+def test_run_text_job_llm_failure_keeps_raw_text_and_warns(transcript_md, stub_pipeline):
+    stub_pipeline(BrokenLLM())
+
+    job = pipeline.run_text_job(transcript_md, mode=FormatMode.conspect)
+
+    assert job.status.value == "completed"
+    assert job.result is not None
+    assert job.result.full_text.startswith("Первое предложение")
+    assert job.warnings and "llm unreachable" in job.warnings[0]
+
+
+def test_run_text_job_missing_file_records_error(tmp_path, stub_pipeline):
+    llm = FakeLLM()
+    stub_pipeline(llm)
+
+    job = pipeline.run_text_job(tmp_path / "missing.md", mode=FormatMode.conspect)
+
+    assert job.status.value == "failed"
+    assert job.error is not None
