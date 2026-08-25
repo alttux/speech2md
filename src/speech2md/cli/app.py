@@ -2,18 +2,37 @@ import logging
 import time
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Callable, Generator
+from typing import Any, Callable, Generator
 
 import typer
 from rich.console import Console
 from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
+from typer.core import TyperGroup
 
 from speech2md.cli.commands import config_cmd
 from speech2md.cli.commands.listen import listen_cmd
 from speech2md.core.models import FormatMode, Job
 from speech2md.core.pipeline import ProgressCallback, run_file_job, run_text_job
 
-app = typer.Typer(name="speech2md")
+# Flags that mean the user is steering the run themselves, so the bare-path
+# shorthand must not silently bolt --also-conspect onto their invocation.
+SHORTHAND_OPT_OUT = frozenset({"--no-llm", "--mode", "-m", "--also-conspect"})
+
+
+class Speech2mdGroup(TyperGroup):
+    """Lets `speech2md lecture.mp3` stand in for `transcribe <path> --also-conspect`."""
+
+    # `ctx` is typer's vendored click Context, which has no public import path.
+    def parse_args(self, ctx: Any, args: list[str]) -> list[str]:
+        if args and not args[0].startswith("-") and args[0] not in self.commands:
+            shorthand = ["transcribe", *args]
+            if SHORTHAND_OPT_OUT.isdisjoint(args):
+                shorthand.append("--also-conspect")
+            args = shorthand
+        return super().parse_args(ctx, args)
+
+
+app = typer.Typer(name="speech2md", cls=Speech2mdGroup)
 console = Console()
 
 STAGE_LABELS = {

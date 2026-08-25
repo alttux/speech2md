@@ -82,3 +82,36 @@ def test_transcribe_without_also_conspect_writes_single_file(audio, stub_pipelin
     out_dir = tmp_path / "out"
     assert (out_dir / "lecture.md").exists()
     assert not (out_dir / "lecture.conspect.md").exists()
+
+
+def test_bare_audio_path_transcribes_and_conspects(audio, stub_pipeline, tmp_path):
+    result = runner.invoke(app, [str(audio)])
+
+    assert result.exit_code == 0, result.output
+    out_dir = tmp_path / "out"
+    assert (out_dir / "lecture.md").exists()
+    assert (out_dir / "lecture.conspect.md").exists()
+
+
+def test_bare_audio_path_respects_explicit_mode(audio, stub_pipeline, tmp_path):
+    result = runner.invoke(app, [str(audio), "--mode", "conspect"])
+
+    assert result.exit_code == 0, result.output
+    out_dir = tmp_path / "out"
+    assert (out_dir / "lecture.conspect.md").exists()
+    assert not (out_dir / "lecture.md").exists()
+
+
+def test_bare_audio_path_respects_no_llm(audio, stub_pipeline, tmp_path):
+    result = runner.invoke(app, [str(audio), "--no-llm"])
+
+    assert result.exit_code == 0, result.output
+    out_dir = tmp_path / "out"
+    assert (out_dir / "lecture.md").exists()
+    assert not (out_dir / "lecture.conspect.md").exists()
+
+
+def test_subcommands_are_not_shadowed_by_shorthand():
+    result = runner.invoke(app, ["config", "path"])
+
+    assert result.exit_code == 0, result.output
