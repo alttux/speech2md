@@ -27,7 +27,9 @@ cli = [
     "rich>=13.0",
 ]
 gui = [
+    "pycairo>=1.28.0",
     "PyGObject>=3.48",
+
 ]
 realtime = [
     "sounddevice>=0.5",
@@ -47,6 +49,7 @@ dev = [
 
 [project.scripts]
 speech2md = "speech2md.cli.app:app"
+speech2md-gui = "speech2md.gui.app:main"
 
 [tool.ruff]
 target-version = "py311"
