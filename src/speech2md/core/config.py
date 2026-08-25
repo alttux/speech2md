@@ -33,7 +33,7 @@ def load() -> Settings:
 
 def save(settings: Settings) -> None:
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    raw = settings.model_dump()
+    raw = settings.model_dump(mode="json")
     CONFIG_FILE.write_text(tomli_w.dumps(raw), encoding="utf-8")
 
 
