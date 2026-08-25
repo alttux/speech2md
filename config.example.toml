@@ -13,7 +13,7 @@
 # ---------------------------------------------------------------------------
 
 # Модель faster-whisper: tiny, base, small, medium, large-v3, large-v2, etc.
-whisper_model = "small"
+whisper_model = "large-v2"
 
 # Устройство: "cpu" или "cuda"
 device = "cpu"
@@ -146,7 +146,7 @@ Below are notes from consecutive parts of one lecture. Merge them into a single 
 
 # Директория для сохранения .md файлов.
 #   По умолчанию: ~/.config/speech2md/output/
-# output_dir = "/путь/к/директории"
+output_dir = "/home/nani/Documents/speech2md/outputs"
 
 # ---------------------------------------------------------------------------
 # VAD (Voice Activity Detection) — для будущего режима реального времени
