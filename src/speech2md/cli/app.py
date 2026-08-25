@@ -1,6 +1,8 @@
 import logging
+import time
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Generator
 
 import typer
 from rich.console import Console
@@ -23,6 +25,22 @@ STAGE_LABELS = {
     "done": "Done!",
     "error": "Error!",
 }
+
+
+def _format_elapsed(seconds: float) -> str:
+    if seconds < 60:
+        return f"{seconds:.1f}s"
+    minutes, secs = divmod(int(seconds), 60)
+    return f"{minutes}m {secs}s"
+
+
+@contextmanager
+def _timed() -> Generator[None, None, None]:
+    start = time.perf_counter()
+    try:
+        yield
+    finally:
+        console.print(f"[dim]Time: {_format_elapsed(time.perf_counter() - start)}[/dim]")
 
 
 def _run_with_progress(run: Callable[[ProgressCallback], Job]) -> Job:
@@ -87,41 +105,44 @@ def transcribe(
         format="%(levelname)s %(name)s: %(message)s",
     )
 
-    if also_conspect:
-        if no_llm:
-            console.print("[red]--also-conspect requires LLM post-processing; drop --no-llm.[/red]")
-            raise typer.Exit(code=1)
-        if mode == FormatMode.conspect:
-            console.print(
-                "[red]--also-conspect already builds a conspect; drop --mode conspect.[/red]"
-            )
-            raise typer.Exit(code=1)
-        mode = mode or FormatMode.transcript
+    with _timed():
+        if also_conspect:
+            if no_llm:
+                console.print(
+                    "[red]--also-conspect requires LLM post-processing; drop --no-llm.[/red]"
+                )
+                raise typer.Exit(code=1)
+            if mode == FormatMode.conspect:
+                console.print(
+                    "[red]--also-conspect already builds a conspect; drop --mode conspect.[/red]"
+                )
+                raise typer.Exit(code=1)
+            mode = mode or FormatMode.transcript
 
-    job = _run_with_progress(
-        lambda on_progress: run_file_job(
-            audio_path,
-            language=language,
-            use_llm=not no_llm,
-            mode=mode,
-            on_progress=on_progress,
-        )
-    )
-    _report_job(job, verbose, verb="transcription saved")
-
-    if also_conspect and job.status.value == "completed":
-        transcript_path = job.output_path
-        assert transcript_path is not None
-        console.print()
-        conspect_job = _run_with_progress(
-            lambda on_progress: run_text_job(
-                transcript_path,
-                language=job.language,
-                mode=FormatMode.conspect,
+        job = _run_with_progress(
+            lambda on_progress: run_file_job(
+                audio_path,
+                language=language,
+                use_llm=not no_llm,
+                mode=mode,
                 on_progress=on_progress,
             )
         )
-        _report_job(conspect_job, verbose, verb="conspect saved")
+        _report_job(job, verbose, verb="transcription saved")
+
+        if also_conspect and job.status.value == "completed":
+            transcript_path = job.output_path
+            assert transcript_path is not None
+            console.print()
+            conspect_job = _run_with_progress(
+                lambda on_progress: run_text_job(
+                    transcript_path,
+                    language=job.language,
+                    mode=FormatMode.conspect,
+                    on_progress=on_progress,
+                )
+            )
+            _report_job(conspect_job, verbose, verb="conspect saved")
 
 
 @app.command()
@@ -144,15 +165,16 @@ def conspect(
         format="%(levelname)s %(name)s: %(message)s",
     )
 
-    job = _run_with_progress(
-        lambda on_progress: run_text_job(
-            text_path,
-            language=language,
-            mode=mode,
-            on_progress=on_progress,
+    with _timed():
+        job = _run_with_progress(
+            lambda on_progress: run_text_job(
+                text_path,
+                language=language,
+                mode=mode,
+                on_progress=on_progress,
+            )
         )
-    )
-    _report_job(job, verbose, verb="conspect saved")
+        _report_job(job, verbose, verb="conspect saved")
 
 
 app.add_typer(config_cmd.app, name="config", help="View or change configuration")
