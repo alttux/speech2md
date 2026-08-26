@@ -39,5 +39,7 @@ def save(settings: Settings) -> None:
 
 def get_output_dir(settings: Settings) -> Path:
     if settings.output_dir:
-        return Path(settings.output_dir)
+        # expanduser matters: without it a config value like "~/notes" is taken
+        # literally and silently creates a directory named "~" under the cwd.
+        return Path(settings.output_dir).expanduser()
     return Path(user_config_dir("speech2md", ensure_exists=True)) / "output"

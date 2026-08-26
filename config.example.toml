@@ -146,7 +146,9 @@ Below are notes from consecutive parts of one lecture. Merge them into a single 
 
 # Директория для сохранения .md файлов.
 #   По умолчанию: ~/.config/speech2md/output/
-output_dir = "/home/nani/Documents/speech2md/outputs"
+#   Поддерживается ~ (раскрывается в домашнюю директорию).
+#   Относительный путь считается от текущей рабочей директории.
+output_dir = "~/Documents/speech2md/outputs"
 
 # ---------------------------------------------------------------------------
 # VAD (Voice Activity Detection) — для будущего режима реального времени
