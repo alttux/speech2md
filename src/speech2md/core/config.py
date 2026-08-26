@@ -12,6 +12,24 @@ from speech2md.core.models import Settings
 CONFIG_DIR = Path(user_config_dir("speech2md", ensure_exists=True))
 CONFIG_FILE = CONFIG_DIR / "config.toml"
 
+DEFAULT_OUTPUT_DIRNAME = "outputs"
+
+
+def project_root() -> Path | None:
+    """Repo root of an editable/source checkout, or None when installed as a wheel."""
+    for parent in Path(__file__).resolve().parents:
+        pyproject = parent / "pyproject.toml"
+        if not pyproject.is_file():
+            continue
+        try:
+            data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
+        except (OSError, tomllib.TOMLDecodeError):
+            return None
+        if data.get("project", {}).get("name") == "speech2md":
+            return parent
+        return None
+    return None
+
 
 def load() -> Settings:
     if not CONFIG_FILE.exists():
@@ -42,4 +60,7 @@ def get_output_dir(settings: Settings) -> Path:
         # expanduser matters: without it a config value like "~/notes" is taken
         # literally and silently creates a directory named "~" under the cwd.
         return Path(settings.output_dir).expanduser()
-    return Path(user_config_dir("speech2md", ensure_exists=True)) / "output"
+    # Default to <project>/outputs so results sit next to the checkout; a wheel
+    # install has no checkout, so fall back to the cwd.
+    root = project_root() or Path.cwd()
+    return root / DEFAULT_OUTPUT_DIRNAME

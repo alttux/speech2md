@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+from speech2md.core import config
 from speech2md.core.config import get_output_dir
 from speech2md.core.models import Settings
 
@@ -56,3 +57,26 @@ def test_get_output_dir_expands_tilde() -> None:
 
 def test_get_output_dir_keeps_relative_paths_relative() -> None:
     assert get_output_dir(Settings(output_dir="outputs")) == Path("outputs")
+
+
+def test_project_root_is_the_repo_checkout() -> None:
+    root = config.project_root()
+
+    assert root is not None
+    assert (root / "pyproject.toml").is_file()
+    assert (root / "src" / "speech2md").is_dir()
+
+
+def test_default_output_dir_is_outputs_under_project_root(tmp_path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)  # default must not depend on the cwd
+    root = config.project_root()
+    assert root is not None
+
+    assert get_output_dir(Settings()) == root / "outputs"
+
+
+def test_default_output_dir_falls_back_to_cwd_without_a_checkout(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(config, "project_root", lambda: None)
+    monkeypatch.chdir(tmp_path)
+
+    assert get_output_dir(Settings()) == Path.cwd() / "outputs"
