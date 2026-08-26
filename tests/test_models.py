@@ -1,4 +1,4 @@
-from speech2md.core.models import Segment, TranscriptionResult, Job, JobMode, Settings
+from speech2md.core.models import Job, JobMode, Segment, Settings, TranscriptionResult
 
 
 def test_segment() -> None:
@@ -28,7 +28,7 @@ def test_settings_defaults() -> None:
 
 
 def test_config_roundtrip(tmp_path, monkeypatch) -> None:
-    from speech2md.core.config import load, save, CONFIG_DIR, CONFIG_FILE
+    from speech2md.core.config import load, save
 
     monkeypatch.setattr("speech2md.core.config.CONFIG_DIR", tmp_path)
     monkeypatch.setattr("speech2md.core.config.CONFIG_FILE", tmp_path / "config.toml")

@@ -33,3 +33,24 @@ def write_markdown(
 
     path.write_text("\n".join(parts), encoding="utf-8")
     return path
+
+
+def _srt_timestamp(seconds: float) -> str:
+    total_ms = round(seconds * 1000)
+    hours, rest = divmod(total_ms, 3_600_000)
+    minutes, rest = divmod(rest, 60_000)
+    secs, millis = divmod(rest, 1000)
+    return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
+
+
+def write_srt(result: TranscriptionResult, output_path: str | Path) -> Path:
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    entries = [
+        f"{i}\n{_srt_timestamp(seg.start)} --> {_srt_timestamp(seg.end)}\n{seg.text}\n"
+        for i, seg in enumerate(result.segments, start=1)
+    ]
+
+    path.write_text("\n".join(entries), encoding="utf-8")
+    return path

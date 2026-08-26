@@ -34,6 +34,11 @@ class JobMode(str, Enum):
     realtime = "realtime"
 
 
+class FormatMode(str, Enum):
+    transcript = "transcript"
+    conspect = "conspect"
+
+
 class Job(BaseModel):
     id: str = Field(default_factory=lambda: uuid.uuid4().hex[:12])
     source: str
@@ -44,6 +49,8 @@ class Job(BaseModel):
     finished_at: datetime | None = None
     result: TranscriptionResult | None = None
     error: str | None = None
+    warnings: list[str] = Field(default_factory=list)
+    output_path: str | None = None
 
 
 class LLMBackend(str, Enum):
@@ -68,6 +75,10 @@ class Settings(BaseModel):
     llm_model: str = ""
     llm_api_key: str = ""
     llm_timeout: int = 120
+    llm_retries: int = 2
+    llm_retry_backoff: float = 2.0
+
+    format_mode: FormatMode = FormatMode.transcript
 
     prompt_template_ru: str = (
         "Исправь ошибки распознавания речи, не меняя смысл и стиль. "
@@ -77,6 +88,32 @@ class Settings(BaseModel):
         "Fix speech recognition errors without changing meaning or style. "
         "Format the text as Markdown. Preserve speech structure.\n\n{text}"
     )
+    prompt_template_conspect_ru: str = (
+        "Составь конспект лекции по расшифровке ниже. Выдели темы заголовками Markdown, "
+        "ключевые идеи — списками, сохрани термины, определения и примеры. "
+        "Опусти оговорки и повторы.\n\n{text}"
+    )
+    prompt_template_conspect_en: str = (
+        "Write lecture notes from the transcript below. Use Markdown headings for topics, "
+        "bullet lists for key ideas, and keep terms, definitions and examples. "
+        "Drop filler and repetitions.\n\n{text}"
+    )
+    prompt_template_merge_ru: str = (
+        "Ниже — конспекты последовательных частей одной лекции. Объедини их в один связный "
+        "конспект Markdown: убери повторы, слей дублирующиеся разделы, выстрой сквозную "
+        "структуру заголовков. Не добавляй информацию, которой нет в тексте.\n\n{text}"
+    )
+    prompt_template_merge_en: str = (
+        "Below are notes from consecutive parts of one lecture. Merge them into a single "
+        "coherent Markdown document: remove repetitions, fold duplicate sections together, "
+        "and build one consistent heading structure. Do not add information that is not "
+        "in the text.\n\n{text}"
+    )
+
+    llm_max_tokens: int = 0
+
+    chunk_size: int = 2000
+    overlap: int = 200
 
     output_dir: str = ""
     vad_threshold: float = 0.5
